@@ -2,7 +2,7 @@ import { Router } from "express";
 import { hash, verify } from "@node-rs/argon2";
 import { z } from "zod";
 import { pool } from "../db/pool.js";
-import { newRefreshToken, signAccessToken } from "../auth.js";
+import { newRefreshToken, requireAuth, signAccessToken } from "../auth.js";
 
 const router = Router();
 const credentials = z.object({
@@ -57,6 +57,14 @@ router.post("/login", async (req, res) => {
   );
   const auth = { userId: row.id, sessionId: session.rows[0]!.id };
   return res.json({ accessToken: signAccessToken(auth), refreshToken: refresh.token, ...auth });
+});
+
+router.post("/logout", requireAuth, async (req, res) => {
+  await pool.query(
+    "UPDATE device_sessions SET revoked_at=now() WHERE id=$1 AND user_id=$2 AND revoked_at IS NULL",
+    [req.auth!.sessionId, req.auth!.userId],
+  );
+  return res.status(204).end();
 });
 
 export default router;

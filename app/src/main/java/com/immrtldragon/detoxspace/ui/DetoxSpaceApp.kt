@@ -32,7 +32,7 @@ import com.immrtldragon.detoxspace.ui.theme.DetoxSpaceTheme
 private enum class Tab(val label: String) { PEOPLE("People"), MOMENTS("Moments"), SETTINGS("Settings") }
 
 @Composable
-fun DetoxSpaceApp(vm: DetoxViewModel = viewModel()) {
+fun DetoxSpaceApp(vm: DetoxViewModel = viewModel(), onLogout: () -> Unit = {}) {
     val connections by vm.connections.collectAsStateWithLifecycle()
     val recent by vm.recentSignals.collectAsStateWithLifecycle()
     val presence by vm.presence.collectAsStateWithLifecycle()
@@ -53,7 +53,7 @@ fun DetoxSpaceApp(vm: DetoxViewModel = viewModel()) {
         when (tab) {
             Tab.PEOPLE -> PeopleScreen(padding, connections, presence, vm::setPresence) { target = it }
             Tab.MOMENTS -> MomentsScreen(padding, recent, vm::updateInvitation)
-            Tab.SETTINGS -> SettingsScreen(padding, darkMode, vm::setDarkMode)
+            Tab.SETTINGS -> SettingsScreen(padding, darkMode, vm::setDarkMode, onLogout)
         }
     }
 
@@ -218,7 +218,12 @@ private fun MomentsScreen(
 }
 
 @Composable
-private fun SettingsScreen(padding: PaddingValues, darkMode: Boolean, onDarkMode: (Boolean) -> Unit) {
+private fun SettingsScreen(
+    padding: PaddingValues,
+    darkMode: Boolean,
+    onDarkMode: (Boolean) -> Unit,
+    onLogout: () -> Unit,
+) {
     Column(Modifier.fillMaxSize().padding(padding).padding(20.dp)) {
         Text("Settings", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(16.dp))
@@ -232,5 +237,7 @@ private fun SettingsScreen(padding: PaddingValues, darkMode: Boolean, onDarkMode
             headlineContent = { Text("Privacy first") },
             supportingContent = { Text("No location, contacts, feed, likes, or background tracking") },
         )
+        HorizontalDivider()
+        TextButton(onClick = onLogout, modifier = Modifier.fillMaxWidth()) { Text("Sign out") }
     }
 }

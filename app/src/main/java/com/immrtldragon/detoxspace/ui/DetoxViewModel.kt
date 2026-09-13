@@ -16,6 +16,7 @@ class DetoxViewModel @Inject constructor(
     private val repository: DetoxRepository,
     private val settings: SettingsRepository,
 ) : ViewModel() {
+    init { viewModelScope.launch { runCatching { repository.syncConnections() } } }
     val connections = repository.connections.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
     val recentSignals = repository.invitations.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
     val presence = repository.presence.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Presence.AVAILABLE)
