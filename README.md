@@ -28,3 +28,8 @@ The current data source is intentionally in-memory so the product interaction ca
 
 Replace `InMemoryDetoxRepository` with Room-backed local storage, then add a remote implementation compatible with the original Dot Space REST and realtime contracts.
 
+## Planning documents
+
+- [`docs/PRODUCT_SPEC.md`](docs/PRODUCT_SPEC.md) — product rules, user flow, privacy boundaries, and V0 definition of done
+- [`docs/ANDROID_ARCHITECTURE.md`](docs/ANDROID_ARCHITECTURE.md) — native stack, modules, synchronization, API boundary, and CI
+- [`docs/ROADMAP.md`](docs/ROADMAP.md) — milestones from offline prototype to Play Store rollout
