@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.People
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,37 +25,45 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.immrtldragon.detoxspace.domain.Connection
 import com.immrtldragon.detoxspace.domain.Presence
 import com.immrtldragon.detoxspace.domain.SignalType
+import com.immrtldragon.detoxspace.domain.TimeWindow
+import com.immrtldragon.detoxspace.domain.InvitationState
+import com.immrtldragon.detoxspace.ui.theme.DetoxSpaceTheme
 
-private enum class Tab(val label: String) { PEOPLE("People"), MOMENTS("Moments") }
+private enum class Tab(val label: String) { PEOPLE("People"), MOMENTS("Moments"), SETTINGS("Settings") }
 
 @Composable
 fun DetoxSpaceApp(vm: DetoxViewModel = viewModel()) {
     val connections by vm.connections.collectAsStateWithLifecycle()
     val recent by vm.recentSignals.collectAsStateWithLifecycle()
     val presence by vm.presence.collectAsStateWithLifecycle()
+    val darkMode by vm.darkMode.collectAsStateWithLifecycle()
     var tab by remember { mutableStateOf(Tab.PEOPLE) }
     var target by remember { mutableStateOf<Connection?>(null) }
 
+    DetoxSpaceTheme(darkTheme = darkMode) {
     Scaffold(
         bottomBar = {
             NavigationBar {
                 NavigationBarItem(tab == Tab.PEOPLE, { tab = Tab.PEOPLE }, { Icon(Icons.Rounded.People, null) }, { Text("People") })
                 NavigationBarItem(tab == Tab.MOMENTS, { tab = Tab.MOMENTS }, { Icon(Icons.Rounded.History, null) }, { Text("Moments") })
+                NavigationBarItem(tab == Tab.SETTINGS, { tab = Tab.SETTINGS }, { Icon(Icons.Rounded.Settings, null) }, { Text("Settings") })
             }
         }
     ) { padding ->
         when (tab) {
             Tab.PEOPLE -> PeopleScreen(padding, connections, presence, vm::setPresence) { target = it }
-            Tab.MOMENTS -> MomentsScreen(padding, recent)
+            Tab.MOMENTS -> MomentsScreen(padding, recent, vm::updateInvitation)
+            Tab.SETTINGS -> SettingsScreen(padding, darkMode, vm::setDarkMode)
         }
     }
 
     target?.let { person ->
-        SignalSheet(person, vm.signalTypes, onDismiss = { target = null }) { signal ->
-            vm.sendSignal(person, signal)
+        SignalSheet(person, vm.signalTypes, onDismiss = { target = null }) { signal, window, note ->
+            vm.sendSignal(person, signal, window, note)
             target = null
             tab = Tab.MOMENTS
         }
+    }
     }
 }
 
@@ -128,7 +137,15 @@ private fun PersonCard(person: Connection, onClick: () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SignalSheet(person: Connection, signals: List<SignalType>, onDismiss: () -> Unit, onSend: (SignalType) -> Unit) {
+private fun SignalSheet(
+    person: Connection,
+    signals: List<SignalType>,
+    onDismiss: () -> Unit,
+    onSend: (SignalType, TimeWindow, String?) -> Unit,
+) {
+    var selectedSignal by remember { mutableStateOf<SignalType?>(null) }
+    var selectedWindow by remember { mutableStateOf(TimeWindow.NOW) }
+    var note by remember { mutableStateOf("") }
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(Modifier.padding(horizontal = 20.dp).padding(bottom = 28.dp)) {
             Text("Invite ${person.name} into a moment", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
@@ -138,15 +155,41 @@ private fun SignalSheet(person: Connection, signals: List<SignalType>, onDismiss
                 ListItem(
                     headlineContent = { Text("${signal.emoji}  ${signal.title}", fontWeight = FontWeight.SemiBold) },
                     supportingContent = { Text(signal.subtitle) },
-                    modifier = Modifier.clip(RoundedCornerShape(16.dp)).clickable { onSend(signal) },
+                    trailingContent = { RadioButton(selectedSignal == signal, { selectedSignal = signal }) },
+                    modifier = Modifier.clip(RoundedCornerShape(16.dp)).clickable { selectedSignal = signal },
                 )
             }
+            Text("When?", fontWeight = FontWeight.SemiBold)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TimeWindow.entries.forEach { window ->
+                    FilterChip(selectedWindow == window, { selectedWindow = window }, { Text(window.label) })
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+            OutlinedTextField(
+                value = note,
+                onValueChange = { if (it.length <= 80) note = it },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Optional note") },
+                supportingText = { Text("${note.length}/80") },
+                maxLines = 2,
+            )
+            Spacer(Modifier.height(12.dp))
+            Button(
+                onClick = { selectedSignal?.let { onSend(it, selectedWindow, note) } },
+                enabled = selectedSignal != null,
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text("Send invitation") }
         }
     }
 }
 
 @Composable
-private fun MomentsScreen(padding: PaddingValues, recent: List<com.immrtldragon.detoxspace.domain.SentSignal>) {
+private fun MomentsScreen(
+    padding: PaddingValues,
+    recent: List<com.immrtldragon.detoxspace.domain.SentSignal>,
+    onState: (String, InvitationState) -> Unit,
+) {
     Column(Modifier.fillMaxSize().padding(padding).padding(20.dp)) {
         Text("Moments", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
         Text("Invitations you sent—not engagement statistics.", color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -159,7 +202,14 @@ private fun MomentsScreen(padding: PaddingValues, recent: List<com.immrtldragon.
             recent.forEach { item ->
                 ListItem(
                     headlineContent = { Text("${item.signalTitle} · ${item.connectionName}") },
-                    supportingContent = { Text("Sent ${item.sentAt}") },
+                    supportingContent = { Text("${item.timeWindow} · ${item.state.name.lowercase()} · ${item.sentAt}") },
+                    trailingContent = {
+                        if (item.state == InvitationState.SENT || item.state == InvitationState.ACCEPTED) {
+                            TextButton(onClick = {
+                                onState(item.id, if (item.state == InvitationState.SENT) InvitationState.CANCELLED else InvitationState.COMPLETED)
+                            }) { Text(if (item.state == InvitationState.SENT) "Cancel" else "Done") }
+                        }
+                    },
                 )
                 HorizontalDivider()
             }
@@ -167,3 +217,20 @@ private fun MomentsScreen(padding: PaddingValues, recent: List<com.immrtldragon.
     }
 }
 
+@Composable
+private fun SettingsScreen(padding: PaddingValues, darkMode: Boolean, onDarkMode: (Boolean) -> Unit) {
+    Column(Modifier.fillMaxSize().padding(padding).padding(20.dp)) {
+        Text("Settings", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(16.dp))
+        ListItem(
+            headlineContent = { Text("Dark mode") },
+            supportingContent = { Text("Saved on this device") },
+            trailingContent = { Switch(checked = darkMode, onCheckedChange = onDarkMode) },
+        )
+        HorizontalDivider()
+        ListItem(
+            headlineContent = { Text("Privacy first") },
+            supportingContent = { Text("No location, contacts, feed, likes, or background tracking") },
+        )
+    }
+}

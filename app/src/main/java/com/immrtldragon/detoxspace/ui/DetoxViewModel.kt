@@ -1,19 +1,25 @@
 package com.immrtldragon.detoxspace.ui
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.immrtldragon.detoxspace.data.DetoxRepository
-import com.immrtldragon.detoxspace.data.InMemoryDetoxRepository
-import com.immrtldragon.detoxspace.domain.Connection
-import com.immrtldragon.detoxspace.domain.Presence
-import com.immrtldragon.detoxspace.domain.SignalType
+import com.immrtldragon.detoxspace.data.SettingsRepository
+import com.immrtldragon.detoxspace.domain.*
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class DetoxViewModel(
-    private val repository: DetoxRepository = InMemoryDetoxRepository(),
+@HiltViewModel
+class DetoxViewModel @Inject constructor(
+    private val repository: DetoxRepository,
+    private val settings: SettingsRepository,
 ) : ViewModel() {
-    val connections = repository.connections
-    val recentSignals = repository.recentSignals
-    val presence = repository.presence
-
+    val connections = repository.connections.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    val recentSignals = repository.invitations.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    val presence = repository.presence.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Presence.AVAILABLE)
+    val darkMode = settings.darkMode.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
     val signalTypes = listOf(
         SignalType("walk", "🚶", "Walk?", "Step outside together"),
         SignalType("coffee", "☕", "Coffee?", "A small break, offline"),
@@ -22,6 +28,10 @@ class DetoxViewModel(
     )
 
     fun setPresence(value: Presence) = repository.setPresence(value)
-    fun sendSignal(connection: Connection, signal: SignalType) = repository.sendSignal(connection, signal)
+    fun setDarkMode(enabled: Boolean) = viewModelScope.launch { settings.setDarkMode(enabled) }
+    fun sendSignal(connection: Connection, signal: SignalType, window: TimeWindow, note: String?) =
+        viewModelScope.launch { repository.sendInvitation(connection, signal, window, note) }
+    fun updateInvitation(id: String, state: InvitationState) = viewModelScope.launch {
+        repository.updateInvitation(id, state)
+    }
 }
-

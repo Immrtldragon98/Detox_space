@@ -4,18 +4,22 @@
 
 Detox Space is the native Android successor to Dot Space. It lets trusted people share availability and send tiny, low-pressure invitations such as **Walk?**, **Coffee?**, **Talk?**, and **Free?**. It is not a screen-time blocker, public social network, dating app, or stranger-discovery product.
 
-## V0.1 foundation
+## V0.2 offline foundation
 
 - Native Android with Kotlin and Jetpack Compose
 - Calm people-first home screen
 - Available / Quiet / Away presence
 - Trusted-connections list
 - Tiny-signal bottom sheet
-- Local prototype signal history
+- Room-persisted invitation history
+- Time windows, optional notes, cancellation, completion, and validated lifecycle transitions
+- DataStore-persisted dark mode
+- Hilt dependency injection
+- Unit and Room instrumentation tests
 - Repository boundary ready for the existing Dot Space API
 - No location, feed, likes, follower counts, or public profiles
 
-The current data source is intentionally in-memory so the product interaction can be validated before wiring authentication, persistence, WebSockets, and FCM.
+Trusted people are still seeded locally for product testing. Invitations and settings persist across app restarts; cloud accounts, synchronization, WebSockets, and FCM belong to the next connected milestone.
 
 ## Open in Android Studio
 
