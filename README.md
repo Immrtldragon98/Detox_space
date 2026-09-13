@@ -30,7 +30,11 @@ Trusted people are still seeded locally for product testing. Invitations and set
 
 ## Next milestone
 
-Replace `InMemoryDetoxRepository` with Room-backed local storage, then add a remote implementation compatible with the original Dot Space REST and realtime contracts.
+Connect the Android repository to the versioned backend, add encrypted token storage and FCM, then test the core invitation flow on two phones using separate networks.
+
+## Backend foundation
+
+The `backend` workspace contains the Node.js/TypeScript API, PostgreSQL schema, revocable device-session authentication, private connection codes, invitation authorization/state rules, incremental cursor reads, and authenticated Socket.IO transport. Use `docker compose up -d`, copy `backend/.env.example` to `backend/.env`, then run `npm install`, `npm run db:migrate`, and `npm run dev` inside `backend`.
 
 ## Planning documents
 
