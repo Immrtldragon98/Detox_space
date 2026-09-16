@@ -33,4 +33,6 @@ data class SentSignal(
     val sentAt: String,
     val state: InvitationState = InvitationState.SENT,
     val timeWindow: String = TimeWindow.NOW.label,
+    val isIncoming: Boolean = false,
+    val note: String? = null,
 )

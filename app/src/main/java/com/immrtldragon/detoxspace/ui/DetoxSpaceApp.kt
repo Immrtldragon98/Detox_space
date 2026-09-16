@@ -12,8 +12,13 @@ import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.People
 import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.PersonAdd
+import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -37,8 +42,11 @@ fun DetoxSpaceApp(vm: DetoxViewModel = viewModel(), onLogout: () -> Unit = {}) {
     val recent by vm.recentSignals.collectAsStateWithLifecycle()
     val presence by vm.presence.collectAsStateWithLifecycle()
     val darkMode by vm.darkMode.collectAsStateWithLifecycle()
+    val connectionCodeUi by vm.connectionCodeUi.collectAsStateWithLifecycle()
+    val syncing by vm.syncing.collectAsStateWithLifecycle()
     var tab by remember { mutableStateOf(Tab.PEOPLE) }
     var target by remember { mutableStateOf<Connection?>(null) }
+    var showConnect by remember { mutableStateOf(false) }
 
     DetoxSpaceTheme(darkTheme = darkMode) {
     Scaffold(
@@ -51,8 +59,8 @@ fun DetoxSpaceApp(vm: DetoxViewModel = viewModel(), onLogout: () -> Unit = {}) {
         }
     ) { padding ->
         when (tab) {
-            Tab.PEOPLE -> PeopleScreen(padding, connections, presence, vm::setPresence) { target = it }
-            Tab.MOMENTS -> MomentsScreen(padding, recent, vm::updateInvitation)
+            Tab.PEOPLE -> PeopleScreen(padding, connections, presence, vm::setPresence, { showConnect = true }) { target = it }
+            Tab.MOMENTS -> MomentsScreen(padding, recent, syncing, vm::refresh, vm::updateInvitation)
             Tab.SETTINGS -> SettingsScreen(padding, darkMode, vm::setDarkMode, onLogout)
         }
     }
@@ -64,6 +72,14 @@ fun DetoxSpaceApp(vm: DetoxViewModel = viewModel(), onLogout: () -> Unit = {}) {
             tab = Tab.MOMENTS
         }
     }
+    if (showConnect) {
+        ConnectionSheet(
+            state = connectionCodeUi,
+            onDismiss = { showConnect = false; vm.clearConnectionCodeState() },
+            onCreate = vm::createConnectionCode,
+            onAccept = vm::acceptConnectionCode,
+        )
+    }
     }
 }
 
@@ -73,6 +89,7 @@ private fun PeopleScreen(
     people: List<Connection>,
     presence: Presence,
     onPresence: (Presence) -> Unit,
+    onConnect: () -> Unit,
     onPerson: (Connection) -> Unit,
 ) {
     LazyColumn(
@@ -98,6 +115,12 @@ private fun PeopleScreen(
             Spacer(Modifier.height(16.dp))
             Text("Your people", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Text("Tap someone. Send one small invitation.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(Modifier.height(12.dp))
+            OutlinedButton(onClick = onConnect, modifier = Modifier.fillMaxWidth()) {
+                Icon(Icons.Rounded.PersonAdd, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Connect a trusted person")
+            }
         }
         items(people, key = { it.id }) { person -> PersonCard(person) { onPerson(person) } }
         item {
@@ -108,6 +131,65 @@ private fun PeopleScreen(
                     Text("No feed. No likes. Just a gentle way to reach your people.")
                 }
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ConnectionSheet(
+    state: DetoxViewModel.ConnectionCodeUiState,
+    onDismiss: () -> Unit,
+    onCreate: () -> Unit,
+    onAccept: (String) -> Unit,
+) {
+    var code by rememberSaveable { mutableStateOf("") }
+    val clipboard = LocalClipboardManager.current
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(Modifier.padding(horizontal = 20.dp).padding(bottom = 28.dp)) {
+            Text("Connect a trusted person", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text("Share a private code in person or through a channel you trust.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(Modifier.height(18.dp))
+            state.generatedCode?.let { generated ->
+                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
+                    Column(Modifier.fillMaxWidth().padding(16.dp)) {
+                        Text("Your 24-hour code", style = MaterialTheme.typography.labelLarge)
+                        Spacer(Modifier.height(6.dp))
+                        Text(generated, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        TextButton(onClick = { clipboard.setText(AnnotatedString(generated)) }) { Text("Copy code") }
+                    }
+                }
+                Spacer(Modifier.height(16.dp))
+            } ?: OutlinedButton(onClick = onCreate, enabled = !state.loading, modifier = Modifier.fillMaxWidth()) {
+                Text("Create my private code")
+            }
+            HorizontalDivider(Modifier.padding(vertical = 18.dp))
+            Text("Have their code?", fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.height(8.dp))
+            OutlinedTextField(
+                value = code,
+                onValueChange = { code = it.filterNot(Char::isWhitespace).take(64) },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Connection code") },
+                singleLine = true,
+            )
+            state.message?.let { Text(it, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(top = 8.dp)) }
+            state.error?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 8.dp)) }
+            Spacer(Modifier.height(12.dp))
+            Button(
+                onClick = { onAccept(code) },
+                enabled = !state.loading && code.length >= 12,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                if (state.loading) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                else Text("Connect")
+            }
+            Text(
+                "Codes work once and expire after 24 hours. No contacts or location access is used.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 12.dp),
+            )
         }
     }
 }
@@ -188,11 +270,21 @@ private fun SignalSheet(
 private fun MomentsScreen(
     padding: PaddingValues,
     recent: List<com.immrtldragon.detoxspace.domain.SentSignal>,
+    syncing: Boolean,
+    onRefresh: () -> Unit,
     onState: (String, InvitationState) -> Unit,
 ) {
     Column(Modifier.fillMaxSize().padding(padding).padding(20.dp)) {
-        Text("Moments", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-        Text("Invitations you sent—not engagement statistics.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("Moments", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                Text("Private invitations between your people.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            IconButton(onClick = onRefresh, enabled = !syncing) {
+                if (syncing) CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
+                else Icon(Icons.Rounded.Refresh, contentDescription = "Refresh invitations")
+            }
+        }
         Spacer(Modifier.height(20.dp))
         if (recent.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -201,16 +293,29 @@ private fun MomentsScreen(
         } else {
             recent.forEach { item ->
                 ListItem(
-                    headlineContent = { Text("${item.signalTitle} · ${item.connectionName}") },
-                    supportingContent = { Text("${item.timeWindow} · ${item.state.name.lowercase()} · ${item.sentAt}") },
+                    overlineContent = { Text(if (item.isIncoming) "FROM ${item.connectionName.uppercase()}" else "TO ${item.connectionName.uppercase()}") },
+                    headlineContent = { Text(item.signalTitle) },
+                    supportingContent = {
+                        Column {
+                            Text("${item.timeWindow} · ${item.state.name.lowercase()} · ${item.sentAt}")
+                            item.note?.let { Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                        }
+                    },
                     trailingContent = {
-                        if (item.state == InvitationState.SENT || item.state == InvitationState.ACCEPTED) {
+                        if (!item.isIncoming && (item.state == InvitationState.SENT || item.state == InvitationState.ACCEPTED)) {
                             TextButton(onClick = {
                                 onState(item.id, if (item.state == InvitationState.SENT) InvitationState.CANCELLED else InvitationState.COMPLETED)
                             }) { Text(if (item.state == InvitationState.SENT) "Cancel" else "Done") }
                         }
                     },
                 )
+                if (item.isIncoming && item.state in setOf(InvitationState.SENT, InvitationState.LATER)) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                        TextButton(onClick = { onState(item.id, InvitationState.DECLINED) }) { Text("Not today") }
+                        TextButton(onClick = { onState(item.id, InvitationState.LATER) }, enabled = item.state == InvitationState.SENT) { Text("Later") }
+                        Button(onClick = { onState(item.id, InvitationState.ACCEPTED) }) { Text("I'm in") }
+                    }
+                }
                 HorizontalDivider()
             }
         }

@@ -2,6 +2,8 @@ package com.immrtldragon.detoxspace.di
 
 import android.content.Context
 import androidx.room.Room
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.immrtldragon.detoxspace.data.DetoxRepository
 import com.immrtldragon.detoxspace.data.OfflineFirstDetoxRepository
 import com.immrtldragon.detoxspace.data.local.DetoxDatabase
@@ -23,8 +25,16 @@ abstract class RepositoryModule {
 @Module
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
+    private val migration1To2 = object : Migration(1, 2) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE invitations ADD COLUMN isIncoming INTEGER NOT NULL DEFAULT 0")
+        }
+    }
+
     @Provides @Singleton
     fun database(@ApplicationContext context: Context): DetoxDatabase =
-        Room.databaseBuilder(context, DetoxDatabase::class.java, "detox-space.db").build()
+        Room.databaseBuilder(context, DetoxDatabase::class.java, "detox-space.db")
+            .addMigrations(migration1To2)
+            .build()
     @Provides fun invitationDao(database: DetoxDatabase): InvitationDao = database.invitationDao()
 }

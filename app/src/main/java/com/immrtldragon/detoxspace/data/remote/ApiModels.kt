@@ -5,6 +5,8 @@ data class LoginRequest(val login: String, val password: String, val deviceName:
 data class AuthResponse(val accessToken: String, val refreshToken: String, val userId: String, val sessionId: String)
 data class ApiConnection(val id: String, val user_id: String, val username: String, val allow_invitations: Boolean)
 data class ConnectionsResponse(val connections: List<ApiConnection>)
+data class ConnectionInviteResponse(val code: String, val expiresInSeconds: Long)
+data class AcceptConnectionInviteResponse(val connectionId: String)
 data class CreateInvitationRequest(
     val id: String,
     val recipientId: String,
@@ -26,4 +28,5 @@ data class ApiInvitation(
 )
 data class InvitationResponse(val invitation: ApiInvitation)
 data class InvitationsResponse(val invitations: List<ApiInvitation>, val nextCursor: Long)
+data class RespondInvitationRequest(val state: String)
 data class ErrorResponse(val error: String)

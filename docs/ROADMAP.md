@@ -50,6 +50,7 @@ Deliverables:
 - authenticated WebSocket client
 - offline mutation queue
 - FCM token registration and notification routing
+- private connection-code creation and acceptance (implemented)
 
 Done when two real phones on separate networks complete the core flow with foreground, background, and killed-app delivery.
 
@@ -57,7 +58,7 @@ Done when two real phones on separate networks complete the core flow with foreg
 
 Deliverables:
 
-- connection invite links/codes
+- connection invite links (single-use codes are implemented in Milestone 3)
 - remove, block, mute, and report
 - device list and remote revocation
 - account deletion
@@ -79,4 +80,3 @@ Deliverables:
 - staged production rollout and rollback procedure
 
 Done when a monitored staged rollout is live and the team can diagnose crashes and delivery failures without reading private invitation content.
-

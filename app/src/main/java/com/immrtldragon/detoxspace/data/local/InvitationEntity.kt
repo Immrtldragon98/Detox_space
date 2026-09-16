@@ -15,4 +15,5 @@ data class InvitationEntity(
     val state: String,
     val createdAtEpochMillis: Long,
     val expiresAtEpochMillis: Long,
+    val isIncoming: Boolean = false,
 )

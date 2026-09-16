@@ -11,7 +11,7 @@ const digest = (value: string) => createHash("sha256").update(value).digest("hex
 router.get("/", async (req, res) => {
   const result = await pool.query(
     `SELECT c.id, u.id AS user_id, u.username,
-      CASE WHEN c.user_low=$1 THEN c.low_allows_invitations ELSE c.high_allows_invitations END AS allow_invitations
+      CASE WHEN c.user_low=$1 THEN c.high_allows_invitations ELSE c.low_allows_invitations END AS allow_invitations
      FROM connections c JOIN users u ON u.id=CASE WHEN c.user_low=$1 THEN c.user_high ELSE c.user_low END
      WHERE (c.user_low=$1 OR c.user_high=$1)
        AND NOT EXISTS (SELECT 1 FROM blocks b WHERE (b.blocker_id=$1 AND b.blocked_id=u.id) OR (b.blocker_id=u.id AND b.blocked_id=$1))

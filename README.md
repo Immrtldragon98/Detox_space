@@ -19,6 +19,9 @@ Detox Space is the native Android successor to Dot Space. It lets trusted people
 - Register and sign in against the Detox Space API
 - Encrypted Android session storage
 - Real trusted-connections sync and idempotent invitation sends
+- Private, single-use 24-hour connection codes
+- Connection-code creation, copy, acceptance, and clear failure states
+- Immediate trusted-person refresh after a code is accepted
 - No location, feed, likes, follower counts, or public profiles
 
 Invitations and settings persist across app restarts. Failed invitation sends remain queued locally for the upcoming background-sync milestone. WebSocket UI updates and FCM belong to the next connected milestone.
@@ -34,7 +37,7 @@ Debug builds default to `http://10.0.2.2:8080/`, which reaches a backend running
 
 ## Next milestone
 
-Connect the Android repository to the versioned backend, add encrypted token storage and FCM, then test the core invitation flow on two phones using separate networks.
+Add incoming invitation synchronization and responses, background retry, authenticated WebSocket updates, and FCM; then test the complete flow on two phones using separate networks.
 
 ## Backend foundation
 

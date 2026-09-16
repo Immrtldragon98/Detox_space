@@ -28,7 +28,7 @@ router.post("/", async (req, res) => {
   const expiresAt = new Date(input.data.expiresAt);
   if (expiresAt <= new Date() || expiresAt <= proposedAt) return res.status(400).json({ error: "invalid_expiry" });
   const connection = await pool.query<{ id: string; allowed: boolean }>(
-    `SELECT id, CASE WHEN user_low=$2 THEN high_allows_invitations ELSE low_allows_invitations END AS allowed
+    `SELECT id, CASE WHEN user_low=$2 THEN low_allows_invitations ELSE high_allows_invitations END AS allowed
      FROM connections WHERE (user_low=LEAST($1::uuid,$2::uuid) AND user_high=GREATEST($1::uuid,$2::uuid))
      AND NOT EXISTS (SELECT 1 FROM blocks WHERE (blocker_id=$1 AND blocked_id=$2) OR (blocker_id=$2 AND blocked_id=$1))`,
     [req.auth!.userId, input.data.recipientId],
@@ -57,6 +57,24 @@ router.post("/:id/respond", async (req, res) => {
   const result = await pool.query(
     "UPDATE invitations SET state=$1,updated_at=now() WHERE id=$2 AND recipient_id=$3 AND state=ANY($4::text[]) RETURNING *",
     [state.data, req.params.id, req.auth!.userId, allowedFrom[state.data]],
+  );
+  if (!result.rows[0]) return res.status(409).json({ error: "not_found_or_invalid_transition" });
+  res.json({ invitation: result.rows[0] });
+});
+
+router.post("/:id/cancel", async (req, res) => {
+  const result = await pool.query(
+    "UPDATE invitations SET state='CANCELLED',updated_at=now() WHERE id=$1 AND sender_id=$2 AND state=ANY($3::text[]) RETURNING *",
+    [req.params.id, req.auth!.userId, ["SENT", "ACCEPTED"]],
+  );
+  if (!result.rows[0]) return res.status(409).json({ error: "not_found_or_invalid_transition" });
+  res.json({ invitation: result.rows[0] });
+});
+
+router.post("/:id/complete", async (req, res) => {
+  const result = await pool.query(
+    "UPDATE invitations SET state='COMPLETED',updated_at=now() WHERE id=$1 AND (sender_id=$2 OR recipient_id=$2) AND state='ACCEPTED' RETURNING *",
+    [req.params.id, req.auth!.userId],
   );
   if (!result.rows[0]) return res.status(409).json({ error: "not_found_or_invalid_transition" });
   res.json({ invitation: result.rows[0] });
