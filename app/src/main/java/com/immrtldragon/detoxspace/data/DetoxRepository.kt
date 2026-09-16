@@ -1,5 +1,7 @@
 package com.immrtldragon.detoxspace.data
 
+import android.content.Context
+import dagger.hilt.android.qualifiers.ApplicationContext
 import com.immrtldragon.detoxspace.data.local.InvitationDao
 import com.immrtldragon.detoxspace.data.local.InvitationEntity
 import com.immrtldragon.detoxspace.data.remote.CreateInvitationRequest
@@ -23,6 +25,8 @@ interface DetoxRepository {
     fun setPresence(value: Presence)
     suspend fun syncConnections()
     suspend fun syncAll()
+    suspend fun retryPending()
+    suspend fun registerPushToken(token: String)
     suspend fun createConnectionCode(): String
     suspend fun acceptConnectionCode(code: String)
     suspend fun sendInvitation(connection: Connection, signal: SignalType, window: TimeWindow, note: String?)
@@ -34,6 +38,7 @@ class OfflineFirstDetoxRepository @Inject constructor(
     private val invitationDao: InvitationDao,
     private val api: DetoxApi,
     private val sessionStore: SessionStore,
+    @ApplicationContext private val context: Context,
 ) : DetoxRepository {
     private val localPresence = MutableStateFlow(Presence.AVAILABLE)
     override val presence: Flow<Presence> = localPresence
@@ -97,6 +102,26 @@ class OfflineFirstDetoxRepository @Inject constructor(
         }
     }
 
+    override suspend fun retryPending() {
+        invitationDao.pending(System.currentTimeMillis()).forEach { pending ->
+            api.createInvitation(
+                CreateInvitationRequest(
+                    id = pending.id,
+                    recipientId = pending.connectionId,
+                    signalType = pending.signalId.uppercase(),
+                    note = pending.note,
+                    proposedAt = Instant.ofEpochMilli(pending.createdAtEpochMillis).toString(),
+                    expiresAt = Instant.ofEpochMilli(pending.expiresAtEpochMillis).toString(),
+                )
+            )
+            invitationDao.updateState(pending.id, InvitationState.SENT.name)
+        }
+    }
+
+    override suspend fun registerPushToken(token: String) {
+        api.registerPushToken(com.immrtldragon.detoxspace.data.remote.PushTokenRequest(token))
+    }
+
     override suspend fun createConnectionCode(): String = api.createConnectionInvite().code
 
     override suspend fun acceptConnectionCode(code: String) {
@@ -130,7 +155,8 @@ class OfflineFirstDetoxRepository @Inject constructor(
             )
             invitationDao.updateState(id, InvitationState.SENT.name)
         } catch (_: Exception) {
-            // Keep SENDING locally. WorkManager will retry this idempotent UUID in the sync milestone.
+            // Keep SENDING locally; the same UUID makes every retry idempotent.
+            DeliveryWorker.runNow(context)
         }
     }
 

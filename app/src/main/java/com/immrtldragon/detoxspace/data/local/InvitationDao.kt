@@ -20,6 +20,9 @@ interface InvitationDao {
     @Query("UPDATE invitations SET state = :state WHERE id = :id")
     suspend fun updateState(id: String, state: String)
 
+    @Query("SELECT * FROM invitations WHERE state = 'SENDING' AND expiresAtEpochMillis > :now")
+    suspend fun pending(now: Long): List<InvitationEntity>
+
     @Query("DELETE FROM invitations")
     suspend fun clear()
 }

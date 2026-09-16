@@ -8,8 +8,9 @@ export type AuthUser = { userId: string; sessionId: string };
 declare global { namespace Express { interface Request { auth?: AuthUser } } }
 
 export function signAccessToken(auth: AuthUser): string {
+  const expiresIn = config.ACCESS_TOKEN_TTL as NonNullable<jwt.SignOptions["expiresIn"]>;
   return jwt.sign({ sub: auth.userId, sid: auth.sessionId }, config.JWT_SECRET, {
-    expiresIn: config.ACCESS_TOKEN_TTL as jwt.SignOptions["expiresIn"],
+    expiresIn,
     issuer: "detox-space",
     audience: "detox-space-android",
   });

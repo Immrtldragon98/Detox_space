@@ -35,9 +35,18 @@ Invitations and settings persist across app restarts. Failed invitation sends re
 
 Debug builds default to `http://10.0.2.2:8080/`, which reaches a backend running on the host from an Android emulator. Override it with `-Pdetox.apiBaseUrl=https://your-api.example/`; Retrofit requires the trailing slash. Use HTTPS for release builds.
 
+## Delivery layer
+
+- WorkManager retries queued invitations on a connected network and performs a periodic reconciliation.
+- Authenticated Socket.IO sends content-free `sync_required` events while the app is open.
+- FCM wakes the app with a generic private notification while it is backgrounded or closed.
+- Notification payloads never include the person, invitation type, note, or response.
+
+FCM is intentionally inactive until you add your own Firebase Android app. Download `google-services.json` into `app/` locally, enable the Google Services Gradle plugin, and configure `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, and `FIREBASE_PRIVATE_KEY` as deployment secrets. Never commit these files or values. The REST/WebSocket/WorkManager flow works without Firebase.
+
 ## Next milestone
 
-Add incoming invitation synchronization and responses, background retry, authenticated WebSocket updates, and FCM; then test the complete flow on two phones using separate networks.
+Run the complete invitation flow on two phones over separate networks, then add token refresh rotation, connection management, device/session controls, and account deletion.
 
 ## Backend foundation
 

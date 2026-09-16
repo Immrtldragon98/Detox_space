@@ -5,6 +5,7 @@ import { config } from "./config.js";
 import authRoutes from "./routes/auth.js";
 import connectionRoutes from "./routes/connections.js";
 import invitationRoutes from "./routes/invitations.js";
+import deviceRoutes from "./routes/devices.js";
 
 export function createApp() {
   const app = express();
@@ -16,6 +17,7 @@ export function createApp() {
   app.use("/v1/auth", authRoutes);
   app.use("/v1/connections", connectionRoutes);
   app.use("/v1/invitations", invitationRoutes);
+  app.use("/v1/devices", deviceRoutes);
   app.use((_req, res) => res.status(404).json({ error: "not_found" }));
   app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
     console.error(error instanceof Error ? error.message : "unknown_error");

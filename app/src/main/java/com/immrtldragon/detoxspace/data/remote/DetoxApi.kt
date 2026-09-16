@@ -10,6 +10,7 @@ interface DetoxApi {
     @POST("v1/auth/register") suspend fun register(@Body request: RegisterRequest): AuthResponse
     @POST("v1/auth/login") suspend fun login(@Body request: LoginRequest): AuthResponse
     @POST("v1/auth/logout") suspend fun logout()
+    @POST("v1/devices/push-token") suspend fun registerPushToken(@Body request: PushTokenRequest)
     @GET("v1/connections") suspend fun connections(): ConnectionsResponse
     @POST("v1/connections/invites") suspend fun createConnectionInvite(): ConnectionInviteResponse
     @POST("v1/connections/invites/{code}/accept")

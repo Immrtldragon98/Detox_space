@@ -47,9 +47,9 @@ Deliverables:
 - authentication and refresh-token rotation
 - secure device identity
 - REST synchronization
-- authenticated WebSocket client
-- offline mutation queue
-- FCM token registration and notification routing
+- authenticated WebSocket client (implemented)
+- offline mutation queue and WorkManager retry (implemented)
+- FCM token registration and notification routing (implemented; requires project secrets)
 - private connection-code creation and acceptance (implemented)
 
 Done when two real phones on separate networks complete the core flow with foreground, background, and killed-app delivery.

@@ -3,6 +3,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { requireAuth } from "../auth.js";
 import { pool } from "../db/pool.js";
+import { publishDelivery } from "../delivery.js";
 
 const router = Router();
 router.use(requireAuth);
@@ -49,6 +50,7 @@ router.post("/invites/:code/accept", async (req, res) => {
     );
     await client.query("UPDATE connection_invites SET accepted_by=$1,accepted_at=now() WHERE id=$2", [req.auth!.userId, row.id]);
     await client.query("COMMIT");
+    publishDelivery([row.created_by]);
     return res.json({ connectionId: connection.rows[0]!.id });
   } catch (error) { await client.query("ROLLBACK"); throw error; }
   finally { client.release(); }

@@ -1,7 +1,28 @@
 package com.immrtldragon.detoxspace
 
 import android.app.Application
+import androidx.hilt.work.HiltWorkerFactory
+import androidx.work.Configuration
+import com.immrtldragon.detoxspace.data.DeliveryWorker
+import com.immrtldragon.detoxspace.data.RealtimeClient
+import com.immrtldragon.detoxspace.data.PushRegistration
+import com.google.firebase.FirebaseApp
 import dagger.hilt.android.HiltAndroidApp
+import javax.inject.Inject
 
 @HiltAndroidApp
-class DetoxSpaceApplication : Application()
+class DetoxSpaceApplication : Application(), Configuration.Provider {
+    @Inject lateinit var workerFactory: HiltWorkerFactory
+    @Inject lateinit var realtimeClient: RealtimeClient
+    @Inject lateinit var pushRegistration: PushRegistration
+
+    override val workManagerConfiguration: Configuration
+        get() = Configuration.Builder().setWorkerFactory(workerFactory).build()
+
+    override fun onCreate() {
+        super.onCreate()
+        DeliveryWorker.schedule(this)
+        realtimeClient.start()
+        if (FirebaseApp.getApps(this).isNotEmpty()) pushRegistration.start()
+    }
+}

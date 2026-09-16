@@ -29,4 +29,5 @@ data class ApiInvitation(
 data class InvitationResponse(val invitation: ApiInvitation)
 data class InvitationsResponse(val invitations: List<ApiInvitation>, val nextCursor: Long)
 data class RespondInvitationRequest(val state: String)
+data class PushTokenRequest(val token: String)
 data class ErrorResponse(val error: String)

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireAuth } from "../auth.js";
 import { pool } from "../db/pool.js";
 import type { InvitationState } from "../invitation-policy.js";
+import { publishDelivery } from "../delivery.js";
 
 const router = Router();
 router.use(requireAuth);
@@ -45,6 +46,7 @@ router.post("/", async (req, res) => {
       input.data.signalType, input.data.note ?? null, proposedAt, expiresAt],
   );
   if (!result.rows[0]) return res.status(409).json({ error: "idempotency_key_conflict" });
+  publishDelivery([input.data.recipientId]);
   res.status(201).json({ invitation: result.rows[0] });
 });
 
@@ -59,6 +61,7 @@ router.post("/:id/respond", async (req, res) => {
     [state.data, req.params.id, req.auth!.userId, allowedFrom[state.data]],
   );
   if (!result.rows[0]) return res.status(409).json({ error: "not_found_or_invalid_transition" });
+  publishDelivery([result.rows[0].sender_id]);
   res.json({ invitation: result.rows[0] });
 });
 
@@ -68,6 +71,7 @@ router.post("/:id/cancel", async (req, res) => {
     [req.params.id, req.auth!.userId, ["SENT", "ACCEPTED"]],
   );
   if (!result.rows[0]) return res.status(409).json({ error: "not_found_or_invalid_transition" });
+  publishDelivery([result.rows[0].recipient_id]);
   res.json({ invitation: result.rows[0] });
 });
 
@@ -77,6 +81,8 @@ router.post("/:id/complete", async (req, res) => {
     [req.params.id, req.auth!.userId],
   );
   if (!result.rows[0]) return res.status(409).json({ error: "not_found_or_invalid_transition" });
+  const row = result.rows[0];
+  publishDelivery([row.sender_id === req.auth!.userId ? row.recipient_id : row.sender_id]);
   res.json({ invitation: result.rows[0] });
 });
 

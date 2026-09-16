@@ -2,6 +2,7 @@ import type { Server } from "node:http";
 import jwt from "jsonwebtoken";
 import { Server as SocketServer } from "socket.io";
 import { config } from "./config.js";
+import { deliveryEvents, sendBackgroundSync } from "./delivery.js";
 import { pool } from "./db/pool.js";
 
 export function createRealtime(server: Server): SocketServer {
@@ -24,5 +25,9 @@ export function createRealtime(server: Server): SocketServer {
     } catch { next(new Error("unauthorized")); }
   });
   io.on("connection", (socket) => socket.join(`user:${String(socket.data.userId)}`));
+  deliveryEvents.on("sync_required", (userId: string) => {
+    io.to(`user:${userId}`).emit("sync_required");
+    void sendBackgroundSync(userId).catch((error) => console.error("push delivery failed", error));
+  });
   return io;
 }
