@@ -33,7 +33,7 @@ Invitations and settings persist across app restarts. Failed invitation sends re
 3. Let Android Studio create/use its Gradle wrapper if one is not present.
 4. Select an Android 8.0+ emulator or device and run `app`.
 
-Debug builds default to `http://10.0.2.2:8080/`, which reaches a backend running on the host from an Android emulator. Override it with `-Pdetox.apiBaseUrl=https://your-api.example/`; Retrofit requires the trailing slash. Use HTTPS for release builds.
+Debug builds default to the deployed API at `https://detox-space-api.onrender.com/`. For local emulator development, override it with `-Pdetox.apiBaseUrl=http://10.0.2.2:8080/`; Retrofit requires the trailing slash.
 
 ## Delivery layer
 

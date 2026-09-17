@@ -12,12 +12,12 @@ android {
 
     defaultConfig {
         val apiBaseUrl = providers.gradleProperty("detox.apiBaseUrl")
-            .getOrElse("http://10.0.2.2:8080/")
+            .getOrElse("https://detox-space-api.onrender.com/")
         applicationId = "com.immrtldragon.detoxspace"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.3.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
     }
