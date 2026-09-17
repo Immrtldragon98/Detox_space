@@ -2,6 +2,8 @@
 
 **Less scrolling. More real moments.**
 
+> **Android beta:** [Download Detox Space v0.5.0-beta.1 APK](https://github.com/Immrtldragon98/Detox_space/releases/download/v0.5.0-beta.1/Detox-Space-v0.5.0-beta.1.apk) · [Test checklist](docs/BETA_TESTING.md)
+
 Detox Space is the native Android successor to Dot Space. It lets trusted people share availability and send tiny, low-pressure invitations such as **Walk?**, **Coffee?**, **Talk?**, and **Free?**. It is not a screen-time blocker, public social network, dating app, or stranger-discovery product.
 
 ## V0.4 production-readiness foundation

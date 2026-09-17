@@ -2,6 +2,8 @@ name: Publish Android Beta APK
 
 on:
   push:
+    branches:
+      - "release/v*"
     tags:
       - "v*"
 
@@ -19,14 +21,17 @@ jobs:
           distribution: temurin
           java-version: "17"
       - uses: gradle/actions/setup-gradle@v4
+      - name: Resolve release version
+        run: echo "RELEASE_TAG=${GITHUB_REF_NAME#release/}" >> "$GITHUB_ENV"
       - name: Test and build APK
         run: ./gradlew testDebugUnitTest assembleDebug --stacktrace
       - name: Name beta APK
-        run: cp app/build/outputs/apk/debug/app-debug.apk "Detox-Space-${GITHUB_REF_NAME}-beta.apk"
+        run: cp app/build/outputs/apk/debug/app-debug.apk "Detox-Space-${RELEASE_TAG}.apk"
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v2
         with:
           name: "Detox Space ${{ github.ref_name }} Beta"
+          tag_name: ${{ env.RELEASE_TAG }}
           prerelease: true
           generate_release_notes: true
-          files: "Detox-Space-${{ github.ref_name }}-beta.apk"
+          files: "Detox-Space-${{ env.RELEASE_TAG }}.apk"
