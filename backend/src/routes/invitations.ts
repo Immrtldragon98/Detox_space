@@ -9,7 +9,13 @@ const router = Router();
 router.use(requireAuth);
 
 router.get("/", async (req, res) => {
-  const cursor = z.coerce.number().int().nonnegative().default(0).parse(req.query.cursor);
+  const parsedCursor = z.coerce.number().int().nonnegative().default(0).safeParse(req.query.cursor);
+  if (!parsedCursor.success) return res.status(400).json({ error: "invalid_cursor" });
+  const cursor = parsedCursor.data;
+  await pool.query(
+    "UPDATE invitations SET state='EXPIRED',updated_at=now() WHERE expires_at<=now() AND state=ANY($1::text[]) AND (sender_id=$2 OR recipient_id=$2)",
+    [["SENT", "LATER"], req.auth!.userId],
+  );
   const result = await pool.query(
     `SELECT * FROM invitations WHERE (sender_id=$1 OR recipient_id=$1) AND sequence_id>$2
      ORDER BY sequence_id ASC LIMIT 200`, [req.auth!.userId, cursor],

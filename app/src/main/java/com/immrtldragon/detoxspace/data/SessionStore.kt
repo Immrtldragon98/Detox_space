@@ -23,6 +23,7 @@ class SessionStore @Inject constructor(@ApplicationContext context: Context) {
     private val _session = MutableStateFlow(read())
     val session: StateFlow<Session?> = _session
     fun accessToken(): String? = _session.value?.accessToken
+    fun current(): Session? = _session.value
 
     fun save(value: Session) {
         prefs.edit().putString("access", value.accessToken).putString("refresh", value.refreshToken)

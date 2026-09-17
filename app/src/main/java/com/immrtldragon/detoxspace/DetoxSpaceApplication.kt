@@ -1,6 +1,8 @@
 package com.immrtldragon.detoxspace
 
 import android.app.Application
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.immrtldragon.detoxspace.data.DeliveryWorker
@@ -21,6 +23,9 @@ class DetoxSpaceApplication : Application(), Configuration.Provider {
 
     override fun onCreate() {
         super.onCreate()
+        getSystemService(NotificationManager::class.java).createNotificationChannel(
+            NotificationChannel("private_moments", "Private moments", NotificationManager.IMPORTANCE_DEFAULT),
+        )
         DeliveryWorker.schedule(this)
         realtimeClient.start()
         if (FirebaseApp.getApps(this).isNotEmpty()) pushRegistration.start()
