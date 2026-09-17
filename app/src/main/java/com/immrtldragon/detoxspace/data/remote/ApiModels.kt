@@ -2,6 +2,7 @@ package com.immrtldragon.detoxspace.data.remote
 
 data class RegisterRequest(val username: String, val email: String, val password: String, val deviceName: String)
 data class LoginRequest(val login: String, val password: String, val deviceName: String)
+data class RefreshRequest(val refreshToken: String)
 data class AuthResponse(val accessToken: String, val refreshToken: String, val userId: String, val sessionId: String)
 data class ApiConnection(val id: String, val user_id: String, val username: String, val allow_invitations: Boolean)
 data class ConnectionsResponse(val connections: List<ApiConnection>)

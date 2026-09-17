@@ -2,7 +2,7 @@ import { Router } from "express";
 import { hash, verify } from "@node-rs/argon2";
 import { z } from "zod";
 import { pool } from "../db/pool.js";
-import { newRefreshToken, requireAuth, signAccessToken } from "../auth.js";
+import { hashToken, newRefreshToken, requireAuth, signAccessToken } from "../auth.js";
 
 const router = Router();
 const credentials = z.object({
@@ -57,6 +57,23 @@ router.post("/login", async (req, res) => {
   );
   const auth = { userId: row.id, sessionId: session.rows[0]!.id };
   return res.json({ accessToken: signAccessToken(auth), refreshToken: refresh.token, ...auth });
+});
+
+router.post("/refresh", async (req, res) => {
+  const input = z.object({ refreshToken: z.string().min(32).max(256) }).safeParse(req.body);
+  if (!input.success) return res.status(400).json({ error: "invalid_input" });
+  const replacement = newRefreshToken();
+  const session = await pool.query<{ id: string; user_id: string }>(
+    `UPDATE device_sessions
+     SET refresh_token_hash=$1,last_seen_at=now()
+     WHERE refresh_token_hash=$2 AND revoked_at IS NULL
+     RETURNING id,user_id`,
+    [replacement.hash, hashToken(input.data.refreshToken)],
+  );
+  const row = session.rows[0];
+  if (!row) return res.status(401).json({ error: "invalid_refresh_token" });
+  const auth = { userId: row.user_id, sessionId: row.id };
+  return res.json({ accessToken: signAccessToken(auth), refreshToken: replacement.token, ...auth });
 });
 
 router.post("/logout", requireAuth, async (req, res) => {

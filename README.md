@@ -4,7 +4,7 @@
 
 Detox Space is the native Android successor to Dot Space. It lets trusted people share availability and send tiny, low-pressure invitations such as **Walk?**, **Coffee?**, **Talk?**, and **Free?**. It is not a screen-time blocker, public social network, dating app, or stranger-discovery product.
 
-## V0.3 connected foundation
+## V0.4 production-readiness foundation
 
 - Native Android with Kotlin and Jetpack Compose
 - Calm people-first home screen
@@ -22,9 +22,13 @@ Detox Space is the native Android successor to Dot Space. It lets trusted people
 - Private, single-use 24-hour connection codes
 - Connection-code creation, copy, acceptance, and clear failure states
 - Immediate trusted-person refresh after a code is accepted
+- Automatic access-token renewal with rotating refresh tokens
+- Authenticated realtime updates, WorkManager retry, and Firebase push delivery
+- API rate limiting, incremental SQL migrations, and dependency security auditing
+- Signed, minified Android App Bundle workflow for Play testing
 - No location, feed, likes, follower counts, or public profiles
 
-Invitations and settings persist across app restarts. Failed invitation sends remain queued locally for the upcoming background-sync milestone. WebSocket UI updates and FCM belong to the next connected milestone.
+Invitations and settings persist across app restarts. Failed invitation sends remain queued locally and retry on a connected network. WebSockets trigger foreground synchronization and FCM handles background delivery.
 
 ## Open in Android Studio
 
@@ -42,11 +46,11 @@ Debug builds default to the deployed API at `https://detox-space-api.onrender.co
 - FCM wakes the app with a generic private notification while it is backgrounded or closed.
 - Notification payloads never include the person, invitation type, note, or response.
 
-FCM is intentionally inactive until you add your own Firebase Android app. Download `google-services.json` into `app/` locally, enable the Google Services Gradle plugin, and configure `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, and `FIREBASE_PRIVATE_KEY` as deployment secrets. Never commit these files or values. The REST/WebSocket/WorkManager flow works without Firebase.
+Firebase project `detox-space` is connected to the Android package `com.immrtldragon.detoxspace`. The Render service requires `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, and `FIREBASE_PRIVATE_KEY` as deployment secrets. Never commit the Firebase Admin service-account JSON or its private key.
 
 ## Next milestone
 
-Run the complete invitation flow on two phones over separate networks, then add token refresh rotation, connection management, device/session controls, and account deletion.
+Run the complete invitation and push flow on two physical phones over separate networks. Before a public Play Store launch, finish connection management, device/session controls, account deletion, privacy-policy/support pages, accessibility review, release signing secrets, and closed beta testing.
 
 ## Backend foundation
 

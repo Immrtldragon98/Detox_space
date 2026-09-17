@@ -22,3 +22,8 @@ interface DetoxApi {
     @POST("v1/invitations/{id}/cancel") suspend fun cancelInvitation(@Path("id") id: String): InvitationResponse
     @POST("v1/invitations/{id}/complete") suspend fun completeInvitation(@Path("id") id: String): InvitationResponse
 }
+
+interface RefreshApi {
+    @POST("v1/auth/refresh")
+    fun refresh(@Body request: RefreshRequest): retrofit2.Call<AuthResponse>
+}
