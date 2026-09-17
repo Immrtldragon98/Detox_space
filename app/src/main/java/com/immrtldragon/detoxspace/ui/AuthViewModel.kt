@@ -25,6 +25,7 @@ class AuthViewModel @Inject constructor(private val repository: AuthRepository) 
         repository.register(username, email, password)
     }
     fun logout() = viewModelScope.launch { repository.logout() }
+    fun deleteAccount() = submit { repository.deleteAccount() }
     fun clearError() { _ui.value = _ui.value.copy(error = null) }
 
     private fun submit(block: suspend () -> Unit) = viewModelScope.launch {

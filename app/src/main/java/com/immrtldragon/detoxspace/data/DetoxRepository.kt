@@ -29,6 +29,10 @@ interface DetoxRepository {
     suspend fun registerPushToken(token: String)
     suspend fun createConnectionCode(): String
     suspend fun acceptConnectionCode(code: String)
+    suspend fun devices(): List<DeviceSession>
+    suspend fun revokeDevice(id: String): Boolean
+    suspend fun removeConnection(userId: String)
+    suspend fun blockConnection(userId: String)
     suspend fun sendInvitation(connection: Connection, signal: SignalType, window: TimeWindow, note: String?)
     suspend fun updateInvitation(id: String, state: InvitationState)
 }
@@ -126,6 +130,35 @@ class OfflineFirstDetoxRepository @Inject constructor(
 
     override suspend fun acceptConnectionCode(code: String) {
         api.acceptConnectionInvite(code.trim())
+        syncConnections()
+    }
+
+    override suspend fun devices(): List<DeviceSession> = api.devices().devices.map {
+        DeviceSession(
+            id = it.id,
+            name = it.device_name,
+            lastSeen = runCatching {
+                Instant.parse(it.last_seen_at).atZone(ZoneId.systemDefault())
+                    .format(DateTimeFormatter.ofPattern("dd MMM, h:mm a"))
+            }.getOrDefault("Recently"),
+            isCurrent = it.is_current,
+        )
+    }
+
+    override suspend fun revokeDevice(id: String): Boolean {
+        api.revokeDevice(id)
+        val current = sessionStore.current()?.sessionId == id
+        if (current) sessionStore.clear()
+        return current
+    }
+
+    override suspend fun removeConnection(userId: String) {
+        api.removeConnection(userId)
+        syncConnections()
+    }
+
+    override suspend fun blockConnection(userId: String) {
+        api.blockConnection(userId)
         syncConnections()
     }
 

@@ -25,5 +25,9 @@ class AuthRepository @Inject constructor(private val api: DetoxApi, private val 
         runCatching { api.logout() }
         sessions.clear()
     }
+    suspend fun deleteAccount() {
+        api.deleteAccount()
+        sessions.clear()
+    }
     private fun deviceName() = "${Build.MANUFACTURER} ${Build.MODEL}".trim().take(80)
 }

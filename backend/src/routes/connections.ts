@@ -62,4 +62,17 @@ router.post("/:userId/block", async (req, res) => {
   res.status(204).end();
 });
 
+router.delete("/:userId", async (req, res) => {
+  if (req.params.userId === req.auth!.userId) return res.status(400).json({ error: "cannot_remove_self" });
+  const result = await pool.query(
+    `DELETE FROM connections
+     WHERE user_low=LEAST($1::uuid,$2::uuid) AND user_high=GREATEST($1::uuid,$2::uuid)
+     RETURNING id`,
+    [req.auth!.userId, req.params.userId],
+  );
+  if (!result.rowCount) return res.status(404).json({ error: "connection_not_found" });
+  publishDelivery([req.params.userId]);
+  res.status(204).end();
+});
+
 export default router;

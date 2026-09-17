@@ -14,6 +14,10 @@ import androidx.compose.material.icons.rounded.People
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.PersonAdd
 import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.Devices
+import androidx.compose.material.icons.rounded.PrivacyTip
+import androidx.compose.material.icons.rounded.HelpOutline
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.material3.*
@@ -32,21 +36,28 @@ import com.immrtldragon.detoxspace.domain.Presence
 import com.immrtldragon.detoxspace.domain.SignalType
 import com.immrtldragon.detoxspace.domain.TimeWindow
 import com.immrtldragon.detoxspace.domain.InvitationState
+import com.immrtldragon.detoxspace.domain.DeviceSession
 import com.immrtldragon.detoxspace.ui.theme.DetoxSpaceTheme
 
 private enum class Tab(val label: String) { PEOPLE("People"), MOMENTS("Moments"), SETTINGS("Settings") }
 
 @Composable
-fun DetoxSpaceApp(vm: DetoxViewModel = viewModel(), onLogout: () -> Unit = {}) {
+fun DetoxSpaceApp(
+    vm: DetoxViewModel = viewModel(),
+    onLogout: () -> Unit = {},
+    onDeleteAccount: () -> Unit = {},
+) {
     val connections by vm.connections.collectAsStateWithLifecycle()
     val recent by vm.recentSignals.collectAsStateWithLifecycle()
     val presence by vm.presence.collectAsStateWithLifecycle()
     val darkMode by vm.darkMode.collectAsStateWithLifecycle()
     val connectionCodeUi by vm.connectionCodeUi.collectAsStateWithLifecycle()
     val syncing by vm.syncing.collectAsStateWithLifecycle()
+    val devices by vm.devices.collectAsStateWithLifecycle()
     var tab by remember { mutableStateOf(Tab.PEOPLE) }
     var target by remember { mutableStateOf<Connection?>(null) }
     var showConnect by remember { mutableStateOf(false) }
+    var managePerson by remember { mutableStateOf<Connection?>(null) }
 
     DetoxSpaceTheme(darkTheme = darkMode) {
     Scaffold(
@@ -74,9 +85,21 @@ fun DetoxSpaceApp(vm: DetoxViewModel = viewModel(), onLogout: () -> Unit = {}) {
         }
     ) { padding ->
         when (tab) {
-            Tab.PEOPLE -> PeopleScreen(padding, connections, presence, vm::setPresence, { showConnect = true }) { target = it }
+            Tab.PEOPLE -> PeopleScreen(
+                padding, connections, presence, vm::setPresence, { showConnect = true },
+                onManage = { managePerson = it },
+            ) { target = it }
             Tab.MOMENTS -> MomentsScreen(padding, recent, syncing, vm::refresh, vm::updateInvitation)
-            Tab.SETTINGS -> SettingsScreen(padding, darkMode, vm::setDarkMode, onLogout)
+            Tab.SETTINGS -> SettingsScreen(
+                padding = padding,
+                darkMode = darkMode,
+                devices = devices,
+                onDarkMode = vm::setDarkMode,
+                onLoadDevices = vm::loadDevices,
+                onRevokeDevice = vm::revokeDevice,
+                onLogout = onLogout,
+                onDeleteAccount = onDeleteAccount,
+            )
         }
     }
 
@@ -95,6 +118,14 @@ fun DetoxSpaceApp(vm: DetoxViewModel = viewModel(), onLogout: () -> Unit = {}) {
             onAccept = vm::acceptConnectionCode,
         )
     }
+    managePerson?.let { person ->
+        ManagePersonDialog(
+            person = person,
+            onDismiss = { managePerson = null },
+            onRemove = { vm.removeConnection(person.id); managePerson = null },
+            onBlock = { vm.blockConnection(person.id); managePerson = null },
+        )
+    }
     }
 }
 
@@ -105,6 +136,7 @@ private fun PeopleScreen(
     presence: Presence,
     onPresence: (Presence) -> Unit,
     onConnect: () -> Unit,
+    onManage: (Connection) -> Unit,
     onPerson: (Connection) -> Unit,
 ) {
     LazyColumn(
@@ -137,7 +169,18 @@ private fun PeopleScreen(
                 Text("Connect a trusted person")
             }
         }
-        items(people, key = { it.id }) { person -> PersonCard(person) { onPerson(person) } }
+        if (people.isEmpty()) {
+            item {
+                Text(
+                    "No trusted people yet. Create a private code to connect your first person.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = 18.dp),
+                )
+            }
+        }
+        items(people, key = { it.id }) { person ->
+            PersonCard(person, onClick = { onPerson(person) }, onManage = { onManage(person) })
+        }
         item {
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
                 Row(Modifier.padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -210,7 +253,7 @@ private fun ConnectionSheet(
 }
 
 @Composable
-private fun PersonCard(person: Connection, onClick: () -> Unit) {
+private fun PersonCard(person: Connection, onClick: () -> Unit, onManage: () -> Unit) {
     ElevatedCard(Modifier.fillMaxWidth().clickable(enabled = person.allowSignals, onClick = onClick)) {
         Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(
@@ -228,8 +271,32 @@ private fun PersonCard(person: Connection, onClick: () -> Unit) {
                 Presence.AWAY -> Color(0xFF9A9A9A)
             }
             Box(Modifier.size(10.dp).clip(CircleShape).background(color))
+            IconButton(onClick = onManage) {
+                Icon(Icons.Rounded.MoreVert, contentDescription = "Manage ${person.name}")
+            }
         }
     }
+}
+
+@Composable
+private fun ManagePersonDialog(
+    person: Connection,
+    onDismiss: () -> Unit,
+    onRemove: () -> Unit,
+    onBlock: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Manage ${person.name}") },
+        text = { Text("Removing ends the connection. Blocking also prevents either person from seeing or inviting the other.") },
+        confirmButton = { TextButton(onClick = onBlock) { Text("Block", color = MaterialTheme.colorScheme.error) } },
+        dismissButton = {
+            Row {
+                TextButton(onClick = onRemove) { Text("Remove") }
+                TextButton(onClick = onDismiss) { Text("Cancel") }
+            }
+        },
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -341,10 +408,22 @@ private fun MomentsScreen(
 private fun SettingsScreen(
     padding: PaddingValues,
     darkMode: Boolean,
+    devices: List<DeviceSession>,
     onDarkMode: (Boolean) -> Unit,
+    onLoadDevices: () -> Unit,
+    onRevokeDevice: (String) -> Unit,
     onLogout: () -> Unit,
+    onDeleteAccount: () -> Unit,
 ) {
-    Column(Modifier.fillMaxSize().padding(padding).padding(20.dp)) {
+    var showDevices by remember { mutableStateOf(false) }
+    var showPrivacy by remember { mutableStateOf(false) }
+    var showSupport by remember { mutableStateOf(false) }
+    var confirmDelete by remember { mutableStateOf(false) }
+    LazyColumn(
+        Modifier.fillMaxSize().padding(padding),
+        contentPadding = PaddingValues(20.dp),
+    ) {
+        item {
         Text("Settings", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(16.dp))
         ListItem(
@@ -354,10 +433,83 @@ private fun SettingsScreen(
         )
         HorizontalDivider()
         ListItem(
-            headlineContent = { Text("Privacy first") },
-            supportingContent = { Text("No location, contacts, feed, likes, or background tracking") },
+            headlineContent = { Text("Devices and sessions") },
+            supportingContent = { Text("Review phones signed into your account") },
+            leadingContent = { Icon(Icons.Rounded.Devices, contentDescription = null) },
+            modifier = Modifier.clickable { onLoadDevices(); showDevices = true },
+        )
+        HorizontalDivider()
+        ListItem(
+            headlineContent = { Text("Privacy") },
+            supportingContent = { Text("What Detox Space stores and avoids") },
+            leadingContent = { Icon(Icons.Rounded.PrivacyTip, contentDescription = null) },
+            modifier = Modifier.clickable { showPrivacy = true },
+        )
+        HorizontalDivider()
+        ListItem(
+            headlineContent = { Text("Help and support") },
+            supportingContent = { Text("Beta guidance and contact") },
+            leadingContent = { Icon(Icons.Rounded.HelpOutline, contentDescription = null) },
+            modifier = Modifier.clickable { showSupport = true },
         )
         HorizontalDivider()
         TextButton(onClick = onLogout, modifier = Modifier.fillMaxWidth()) { Text("Sign out") }
+        TextButton(onClick = { confirmDelete = true }, modifier = Modifier.fillMaxWidth()) {
+            Text("Delete account", color = MaterialTheme.colorScheme.error)
+        }
+        }
+    }
+
+    if (showDevices) {
+        AlertDialog(
+            onDismissRequest = { showDevices = false },
+            title = { Text("Signed-in devices") },
+            text = {
+                Column(Modifier.heightIn(max = 360.dp)) {
+                    if (devices.isEmpty()) Text("Loading devices…")
+                    devices.forEach { device ->
+                        ListItem(
+                            headlineContent = { Text(device.name) },
+                            supportingContent = { Text("Last seen ${device.lastSeen}${if (device.isCurrent) " · This device" else ""}") },
+                            trailingContent = {
+                                TextButton(onClick = { onRevokeDevice(device.id) }) {
+                                    Text(if (device.isCurrent) "Sign out" else "Revoke")
+                                }
+                            },
+                        )
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { showDevices = false }) { Text("Done") } },
+        )
+    }
+    if (showPrivacy) {
+        AlertDialog(
+            onDismissRequest = { showPrivacy = false },
+            title = { Text("Privacy first") },
+            text = { Text("Detox Space stores your account, trusted connections, device sessions, and private invitations. It does not request contacts or location, and it has no public profiles, feed, likes, or background tracking. Invitation notifications contain no person, note, or activity details.") },
+            confirmButton = { TextButton(onClick = { showPrivacy = false }) { Text("Close") } },
+        )
+    }
+    if (showSupport) {
+        AlertDialog(
+            onDismissRequest = { showSupport = false },
+            title = { Text("Beta support") },
+            text = { Text("For beta issues, report the phone model, Android version, what you tapped, and what happened. Contact: vyvsyadav98@proton.me") },
+            confirmButton = { TextButton(onClick = { showSupport = false }) { Text("Close") } },
+        )
+    }
+    if (confirmDelete) {
+        AlertDialog(
+            onDismissRequest = { confirmDelete = false },
+            title = { Text("Delete your account?") },
+            text = { Text("This permanently deletes your account, trusted connections, device sessions, and invitations. This cannot be undone.") },
+            confirmButton = {
+                TextButton(onClick = { confirmDelete = false; onDeleteAccount() }) {
+                    Text("Delete permanently", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Cancel") } },
+        )
     }
 }

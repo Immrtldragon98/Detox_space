@@ -1,0 +1,32 @@
+name: Publish Android Beta APK
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Test and build APK
+        run: ./gradlew testDebugUnitTest assembleDebug --stacktrace
+      - name: Name beta APK
+        run: cp app/build/outputs/apk/debug/app-debug.apk "Detox-Space-${GITHUB_REF_NAME}-beta.apk"
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Detox Space ${{ github.ref_name }} Beta"
+          prerelease: true
+          generate_release_notes: true
+          files: "Detox-Space-${{ github.ref_name }}-beta.apk"

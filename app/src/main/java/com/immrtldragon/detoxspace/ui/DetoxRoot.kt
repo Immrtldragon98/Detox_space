@@ -15,7 +15,7 @@ import com.immrtldragon.detoxspace.ui.theme.DetoxSpaceTheme
 @Composable
 fun DetoxRoot(auth: AuthViewModel = hiltViewModel()) {
     val session by auth.session.collectAsStateWithLifecycle()
-    if (session == null) AuthScreen(auth) else DetoxSpaceApp(onLogout = auth::logout)
+    if (session == null) AuthScreen(auth) else DetoxSpaceApp(onLogout = auth::logout, onDeleteAccount = auth::deleteAccount)
 }
 
 @Composable
