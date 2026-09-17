@@ -31,4 +31,12 @@ data class InvitationResponse(val invitation: ApiInvitation)
 data class InvitationsResponse(val invitations: List<ApiInvitation>, val nextCursor: Long)
 data class RespondInvitationRequest(val state: String)
 data class PushTokenRequest(val token: String)
+data class ApiDevice(
+    val id: String,
+    val device_name: String,
+    val created_at: String,
+    val last_seen_at: String,
+    val is_current: Boolean,
+)
+data class DevicesResponse(val devices: List<ApiDevice>)
 data class ErrorResponse(val error: String)

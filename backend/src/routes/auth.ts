@@ -84,4 +84,9 @@ router.post("/logout", requireAuth, async (req, res) => {
   return res.status(204).end();
 });
 
+router.delete("/account", requireAuth, async (req, res) => {
+  await pool.query("DELETE FROM users WHERE id=$1", [req.auth!.userId]);
+  return res.status(204).end();
+});
+
 export default router;

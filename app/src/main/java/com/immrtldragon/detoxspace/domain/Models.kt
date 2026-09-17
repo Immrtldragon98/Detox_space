@@ -36,3 +36,10 @@ data class SentSignal(
     val isIncoming: Boolean = false,
     val note: String? = null,
 )
+
+data class DeviceSession(
+    val id: String,
+    val name: String,
+    val lastSeen: String,
+    val isCurrent: Boolean,
+)

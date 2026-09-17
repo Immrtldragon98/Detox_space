@@ -30,6 +30,8 @@ class DetoxViewModel @Inject constructor(
     val connectionCodeUi = _connectionCodeUi.asStateFlow()
     private val _syncing = MutableStateFlow(false)
     val syncing = _syncing.asStateFlow()
+    private val _devices = MutableStateFlow<List<DeviceSession>>(emptyList())
+    val devices = _devices.asStateFlow()
     init { refresh() }
     val connections = repository.connections.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
     val recentSignals = repository.invitations.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
@@ -71,6 +73,23 @@ class DetoxViewModel @Inject constructor(
     }
 
     fun clearConnectionCodeState() { _connectionCodeUi.value = ConnectionCodeUiState() }
+
+    fun loadDevices() = viewModelScope.launch {
+        runCatching { repository.devices() }.onSuccess { _devices.value = it }
+    }
+
+    fun revokeDevice(id: String) = viewModelScope.launch {
+        runCatching { repository.revokeDevice(id) }
+            .onSuccess { if (!it) loadDevices() }
+    }
+
+    fun removeConnection(userId: String) = viewModelScope.launch {
+        runCatching { repository.removeConnection(userId) }
+    }
+
+    fun blockConnection(userId: String) = viewModelScope.launch {
+        runCatching { repository.blockConnection(userId) }
+    }
 
     private fun connectionError(error: Throwable): String {
         val body = (error as? retrofit2.HttpException)?.response()?.errorBody()?.string().orEmpty()

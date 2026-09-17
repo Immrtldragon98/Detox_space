@@ -61,3 +61,5 @@ The `backend` workspace contains the Node.js/TypeScript API, PostgreSQL schema, 
 - [`docs/PRODUCT_SPEC.md`](docs/PRODUCT_SPEC.md) — product rules, user flow, privacy boundaries, and V0 definition of done
 - [`docs/ANDROID_ARCHITECTURE.md`](docs/ANDROID_ARCHITECTURE.md) — native stack, modules, synchronization, API boundary, and CI
 - [`docs/ROADMAP.md`](docs/ROADMAP.md) — milestones from offline prototype to Play Store rollout
+- [`docs/PRIVACY_POLICY.md`](docs/PRIVACY_POLICY.md) — beta privacy notice and data boundaries
+- [`docs/BETA_TESTING.md`](docs/BETA_TESTING.md) — two-phone installation and test checklist
