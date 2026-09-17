@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1079883706489",
+    "project_id": "detox-space",
+    "storage_bucket": "detox-space.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1079883706489:android:3176081a8b98245687e4a8",
+        "android_client_info": {
+          "package_name": "com.immrtldragon.detoxspace"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDcACk9DetHaLq1R-bbfITmlwK1sSHcGkk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
