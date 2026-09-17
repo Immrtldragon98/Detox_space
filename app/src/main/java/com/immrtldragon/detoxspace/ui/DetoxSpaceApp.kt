@@ -52,9 +52,24 @@ fun DetoxSpaceApp(vm: DetoxViewModel = viewModel(), onLogout: () -> Unit = {}) {
     Scaffold(
         bottomBar = {
             NavigationBar {
-                NavigationBarItem(tab == Tab.PEOPLE, { tab = Tab.PEOPLE }, { Icon(Icons.Rounded.People, null) }, { Text("People") })
-                NavigationBarItem(tab == Tab.MOMENTS, { tab = Tab.MOMENTS }, { Icon(Icons.Rounded.History, null) }, { Text("Moments") })
-                NavigationBarItem(tab == Tab.SETTINGS, { tab = Tab.SETTINGS }, { Icon(Icons.Rounded.Settings, null) }, { Text("Settings") })
+                NavigationBarItem(
+                    selected = tab == Tab.PEOPLE,
+                    onClick = { tab = Tab.PEOPLE },
+                    icon = { Icon(Icons.Rounded.People, contentDescription = null) },
+                    label = { Text("People") },
+                )
+                NavigationBarItem(
+                    selected = tab == Tab.MOMENTS,
+                    onClick = { tab = Tab.MOMENTS },
+                    icon = { Icon(Icons.Rounded.History, contentDescription = null) },
+                    label = { Text("Moments") },
+                )
+                NavigationBarItem(
+                    selected = tab == Tab.SETTINGS,
+                    onClick = { tab = Tab.SETTINGS },
+                    icon = { Icon(Icons.Rounded.Settings, contentDescription = null) },
+                    label = { Text("Settings") },
+                )
             }
         }
     ) { padding ->
