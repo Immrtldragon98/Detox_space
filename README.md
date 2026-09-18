@@ -2,14 +2,16 @@
 
 **Less scrolling. More real moments.**
 
-> **Android beta:** [Download Detox Space v0.5.0-beta.1 APK](https://github.com/Immrtldragon98/Detox_space/releases/download/v0.5.0-beta.1/Detox-Space-v0.5.0-beta.1.apk) · [Test checklist](docs/BETA_TESTING.md)
+> **Android beta:** [Download Detox Space v0.6.0-beta.1 APK](https://github.com/Immrtldragon98/Detox_space/releases/download/v0.6.0-beta.1/Detox-Space-v0.6.0-beta.1.apk) · [Test checklist](docs/BETA_TESTING.md)
 
 Detox Space is the native Android successor to Dot Space. It lets trusted people share availability and send tiny, low-pressure invitations such as **Walk?**, **Coffee?**, **Talk?**, and **Free?**. It is not a screen-time blocker, public social network, dating app, or stranger-discovery product.
 
-## V0.4 production-readiness foundation
+## V0.6 minimal beta
 
 - Native Android with Kotlin and Jetpack Compose
 - Calm people-first home screen
+- Minimal warm-ivory and forest visual system with full dark theme
+- Original adaptive launcher icon and legacy Android icon set
 - Available / Quiet / Away presence
 - Trusted-connections list
 - Tiny-signal bottom sheet
@@ -52,7 +54,11 @@ Firebase project `detox-space` is connected to the Android package `com.immrtldr
 
 ## Next milestone
 
-Run the complete invitation and push flow on two physical phones over separate networks. Before a public Play Store launch, finish connection management, device/session controls, account deletion, privacy-policy/support pages, accessibility review, release signing secrets, and closed beta testing.
+Run the complete invitation and push flow on two physical phones over separate networks. Before a public Play Store launch, finish the accessibility review, configure release-signing secrets, capture store assets, and complete closed beta testing.
+
+## Brand assets
+
+The source launcher artwork is stored at [`docs/branding/detox-space-icon-v1.png`](docs/branding/detox-space-icon-v1.png). Android uses an adaptive vector foreground on supported launchers and density-specific PNGs on older devices.
 
 ## Backend foundation
 

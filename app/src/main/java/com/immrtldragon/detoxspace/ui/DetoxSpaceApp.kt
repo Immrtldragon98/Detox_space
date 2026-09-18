@@ -1,6 +1,7 @@
 package com.immrtldragon.detoxspace.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -61,8 +62,12 @@ fun DetoxSpaceApp(
 
     DetoxSpaceTheme(darkTheme = darkMode) {
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
-            NavigationBar {
+            NavigationBar(
+                containerColor = MaterialTheme.colorScheme.surface,
+                tonalElevation = 0.dp,
+            ) {
                 NavigationBarItem(
                     selected = tab == Tab.PEOPLE,
                     onClick = { tab = Tab.PEOPLE },
@@ -145,10 +150,10 @@ private fun PeopleScreen(
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         item {
-            Text("Detox Space", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+            Text("Detox Space", style = MaterialTheme.typography.headlineMedium)
             Text("Less scrolling. More real moments.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(Modifier.height(22.dp))
-            Text("How available are you?", fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.height(28.dp))
+            Text("Your availability", style = MaterialTheme.typography.labelLarge)
             Spacer(Modifier.height(10.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Presence.entries.forEach { value ->
@@ -159,8 +164,8 @@ private fun PeopleScreen(
                     )
                 }
             }
-            Spacer(Modifier.height(16.dp))
-            Text("Your people", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(24.dp))
+            Text("Your people", style = MaterialTheme.typography.titleLarge)
             Text("Tap someone. Send one small invitation.", color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(12.dp))
             OutlinedButton(onClick = onConnect, modifier = Modifier.fillMaxWidth()) {
@@ -182,7 +187,10 @@ private fun PeopleScreen(
             PersonCard(person, onClick = { onPerson(person) }, onManage = { onManage(person) })
         }
         item {
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
+            OutlinedCard(
+                colors = CardDefaults.outlinedCardColors(containerColor = Color.Transparent),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            ) {
                 Row(Modifier.padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Rounded.FavoriteBorder, null)
                     Spacer(Modifier.width(12.dp))
@@ -254,15 +262,19 @@ private fun ConnectionSheet(
 
 @Composable
 private fun PersonCard(person: Connection, onClick: () -> Unit, onManage: () -> Unit) {
-    ElevatedCard(Modifier.fillMaxWidth().clickable(enabled = person.allowSignals, onClick = onClick)) {
+    OutlinedCard(
+        modifier = Modifier.fillMaxWidth().clickable(enabled = person.allowSignals, onClick = onClick),
+        colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+    ) {
         Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(
                 Modifier.size(48.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer),
                 contentAlignment = Alignment.Center,
-            ) { Text(person.initials, fontWeight = FontWeight.Bold) }
+            ) { Text(person.initials, fontWeight = FontWeight.SemiBold) }
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
-                Text(person.name, fontWeight = FontWeight.Bold)
+                Text(person.name, style = MaterialTheme.typography.titleMedium)
                 Text(person.status, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             val color = when (person.presence) {
@@ -359,7 +371,7 @@ private fun MomentsScreen(
     Column(Modifier.fillMaxSize().padding(padding).padding(20.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text("Moments", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                Text("Moments", style = MaterialTheme.typography.headlineMedium)
                 Text("Private invitations between your people.", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             IconButton(onClick = onRefresh, enabled = !syncing) {
@@ -374,7 +386,13 @@ private fun MomentsScreen(
             }
         } else {
             recent.forEach { item ->
+                OutlinedCard(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                    colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                ) {
                 ListItem(
+                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                     overlineContent = { Text(if (item.isIncoming) "FROM ${item.connectionName.uppercase()}" else "TO ${item.connectionName.uppercase()}") },
                     headlineContent = { Text(item.signalTitle) },
                     supportingContent = {
@@ -392,13 +410,13 @@ private fun MomentsScreen(
                     },
                 )
                 if (item.isIncoming && item.state in setOf(InvitationState.SENT, InvitationState.LATER)) {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp), horizontalArrangement = Arrangement.End) {
                         TextButton(onClick = { onState(item.id, InvitationState.DECLINED) }) { Text("Not today") }
                         TextButton(onClick = { onState(item.id, InvitationState.LATER) }, enabled = item.state == InvitationState.SENT) { Text("Later") }
                         Button(onClick = { onState(item.id, InvitationState.ACCEPTED) }) { Text("I'm in") }
                     }
                 }
-                HorizontalDivider()
+                }
             }
         }
     }
@@ -424,7 +442,7 @@ private fun SettingsScreen(
         contentPadding = PaddingValues(20.dp),
     ) {
         item {
-        Text("Settings", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+        Text("Settings", style = MaterialTheme.typography.headlineMedium)
         Spacer(Modifier.height(16.dp))
         ListItem(
             headlineContent = { Text("Dark mode") },
