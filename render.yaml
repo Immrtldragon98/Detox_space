@@ -5,7 +5,7 @@ services:
     rootDir: backend
     buildCommand: npm ci --include=dev && npm run build
     startCommand: npm run db:migrate && npm start
-    healthCheckPath: /health
+    healthCheckPath: /health/ready
     envVars:
       - key: NODE_ENV
         value: production
@@ -17,3 +17,9 @@ services:
         value: 15m
       - key: CORS_ORIGIN
         value: https://localhost.invalid
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: FIREBASE_CLIENT_EMAIL
+        sync: false
+      - key: FIREBASE_PRIVATE_KEY
+        sync: false

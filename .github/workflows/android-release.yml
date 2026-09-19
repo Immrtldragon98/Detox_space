@@ -2,6 +2,11 @@ name: Android Signed Release
 
 on:
   workflow_dispatch:
+    inputs:
+      release_name:
+        description: "Release label, for example 0.6.0"
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -17,20 +22,40 @@ jobs:
           distribution: temurin
           java-version: "17"
       - uses: gradle/actions/setup-gradle@v4
+      - name: Verify release secrets are configured
+        env:
+          KEYSTORE_BASE64: ${{ secrets.DETOX_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.DETOX_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.DETOX_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.DETOX_KEY_PASSWORD }}
+        run: |
+          test -n "$KEYSTORE_BASE64"
+          test -n "$KEYSTORE_PASSWORD"
+          test -n "$KEY_ALIAS"
+          test -n "$KEY_PASSWORD"
       - name: Restore signing key
         env:
           KEYSTORE_BASE64: ${{ secrets.DETOX_KEYSTORE_BASE64 }}
         run: echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/detox-release.jks"
-      - name: Test and build signed bundle
+      - name: Test, lint, and build signed bundle
         env:
           DETOX_KEYSTORE_PATH: ${{ runner.temp }}/detox-release.jks
           DETOX_KEYSTORE_PASSWORD: ${{ secrets.DETOX_KEYSTORE_PASSWORD }}
           DETOX_KEY_ALIAS: ${{ secrets.DETOX_KEY_ALIAS }}
           DETOX_KEY_PASSWORD: ${{ secrets.DETOX_KEY_PASSWORD }}
-        run: ./gradlew testDebugUnitTest bundleRelease --stacktrace
+        run: ./gradlew testDebugUnitTest lintDebug bundleRelease --stacktrace
       - uses: actions/upload-artifact@v4
         with:
           name: detox-space-release-aab
           path: app/build/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+          retention-days: 14
+      - name: Record release metadata
+        run: |
+          sha256sum app/build/outputs/bundle/release/app-release.aab > detox-space-${{ inputs.release_name }}.aab.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: detox-space-release-checksum
+          path: detox-space-${{ inputs.release_name }}.aab.sha256
           if-no-files-found: error
           retention-days: 14
