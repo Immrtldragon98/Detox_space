@@ -29,7 +29,7 @@ Detox Space is the native Android successor to Dot Space. It lets trusted people
 - Automatic access-token renewal with rotating refresh tokens
 - Authenticated realtime updates, WorkManager retry, and Firebase push delivery
 - API rate limiting, incremental SQL migrations, and dependency security auditing
-- Signed, minified Android App Bundle workflow for Play testing
+- Signed, minified Android App Bundle workflow with lint and checksum verification for Play testing
 - No location, feed, likes, follower counts, or public profiles
 
 Invitations and settings persist across app restarts. Failed invitation sends remain queued locally and retry on a connected network. WebSockets trigger foreground synchronization and FCM handles background delivery.
@@ -55,6 +55,8 @@ Firebase project `detox-space` is connected to the Android package `com.immrtldr
 ## Next milestone
 
 Run the complete invitation and push flow on two physical phones over separate networks. Before a public Play Store launch, finish the accessibility review, configure release-signing secrets, capture store assets, and complete closed beta testing.
+
+The exact release gates and manual Play Console steps are in [`docs/PRODUCTION_RELEASE.md`](docs/PRODUCTION_RELEASE.md).
 
 ## Brand assets
 
