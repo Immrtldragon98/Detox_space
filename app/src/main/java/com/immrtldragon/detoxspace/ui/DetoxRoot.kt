@@ -5,7 +5,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -33,7 +32,17 @@ private fun AuthScreen(vm: AuthViewModel) {
                 Modifier.fillMaxSize().padding(horizontal = 24.dp),
                 verticalArrangement = Arrangement.Center,
             ) {
-                Text("Detox Space", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
+                Surface(
+                    color = MaterialTheme.colorScheme.primary,
+                    shape = MaterialTheme.shapes.medium,
+                    modifier = Modifier.size(64.dp),
+                ) {
+                    Box(contentAlignment = androidx.compose.ui.Alignment.Center) {
+                        Text("•  •", color = MaterialTheme.colorScheme.onPrimary, style = MaterialTheme.typography.titleLarge)
+                    }
+                }
+                Spacer(Modifier.height(20.dp))
+                Text("Detox Space", style = MaterialTheme.typography.headlineLarge)
                 Text("Less scrolling. More real moments.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(28.dp))
                 if (createAccount) {
