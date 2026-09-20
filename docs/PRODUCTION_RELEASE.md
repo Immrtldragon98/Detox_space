@@ -18,9 +18,9 @@ In GitHub repository secrets, add:
 - `DETOX_KEY_ALIAS`
 - `DETOX_KEY_PASSWORD`
 
-Then run **Android Signed Release** from the Actions tab. It will fail before building if any signing secret is missing, run unit tests and Android lint, and upload a signed `app-release.aab` plus its SHA-256 checksum.
+Then run **Publish Signed Android Test Release** from the Actions tab with the tag `v0.6.1-test.1`. It will fail before building if any signing secret is missing, run unit tests and Android lint, then publish a signed APK, signed AAB, and SHA-256 checksum in a GitHub prerelease.
 
-Do not distribute the AAB to testers directly. Upload it to Google Play Console instead.
+Install the APK to test directly. Upload the AAB to Google Play Console instead. The first permanent signed APK cannot update an older debug-signed APK, so uninstall the old debug app once before installing it. Every later signed build from the same keystore will install as an update.
 
 ## 2. Verify the live backend
 
