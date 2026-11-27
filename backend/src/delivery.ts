@@ -4,6 +4,8 @@ import { getMessaging } from "firebase-admin/messaging";
 import { config } from "./config.js";
 import { pool } from "./db/pool.js";
 
+import { sendPushBatches } from "./push-batches.js";
+
 export const deliveryEvents = new EventEmitter();
 
 export function publishDelivery(userIds: string[]): void {
@@ -26,16 +28,21 @@ if (firebaseConfigured && !getApps().length) {
 
 export async function sendBackgroundSync(userId: string): Promise<void> {
   if (!firebaseConfigured) return;
-  const result = await pool.query<{ fcm_token: string }>(
-    "SELECT fcm_token FROM device_sessions WHERE user_id=$1 AND revoked_at IS NULL AND fcm_token IS NOT NULL",
-    [userId],
-  );
-  const tokens = result.rows.map((row) => row.fcm_token);
-  if (!tokens.length) return;
-  await getMessaging().sendEachForMulticast({
-    tokens,
-    data: { type: "sync_required" },
-    notification: { title: "Detox Space", body: "A moment is waiting for you." },
-    android: { priority: "high", notification: { channelId: "private_moments" } },
-  });
+  try {
+    const result = await pool.query<{ fcm_token: string }>(
+      "SELECT DISTINCT fcm_token FROM device_sessions WHERE user_id=$1 AND revoked_at IS NULL AND fcm_token IS NOT NULL",
+      [userId],
+    );
+    const tokens = result.rows.map((row) => row.fcm_token);
+    await sendPushBatches(tokens,
+      (message) => getMessaging().sendEachForMulticast(message),
+      (deadTokens) => pool.query(
+        "UPDATE device_sessions SET fcm_token=NULL WHERE user_id=$1 AND fcm_token=ANY($2::text[])",
+        [userId, deadTokens],
+      ),
+    );
+  } catch {
+    // EventEmitter does not await listeners. Periodic Android sync provides recovery.
+    console.error("Background sync push failed; periodic sync will retry");
+  }
 }
