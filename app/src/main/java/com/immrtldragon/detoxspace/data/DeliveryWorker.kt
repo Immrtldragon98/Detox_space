@@ -1,5 +1,9 @@
 package com.immrtldragon.detoxspace.data
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.core.content.ContextCompat
 import android.content.Context
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -38,7 +42,9 @@ class DeliveryWorker @AssistedInject constructor(
             it.isIncoming && it.state in setOf(InvitationState.SENT, InvitationState.LATER, InvitationState.ACCEPTED) &&
                 before[it.id] != it.state
         }
-        if (changed && NotificationManagerCompat.from(applicationContext).areNotificationsEnabled()) {
+        if (changed && NotificationManagerCompat.from(applicationContext).areNotificationsEnabled() &&
+            (Build.VERSION.SDK_INT < 33 || ContextCompat.checkSelfPermission(applicationContext,
+                Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED)) {
             val openApp = PendingIntent.getActivity(applicationContext, 0,
                 Intent(applicationContext, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP),
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
