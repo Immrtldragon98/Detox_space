@@ -9,18 +9,30 @@ const router = Router();
 router.use(requireAuth);
 
 router.get("/", async (req, res) => {
-  const parsedCursor = z.coerce.number().int().nonnegative().default(0).safeParse(req.query.cursor);
+  const parsedCursor = z.coerce.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER).default(0).safeParse(req.query.cursor);
   if (!parsedCursor.success) return res.status(400).json({ error: "invalid_cursor" });
   const cursor = parsedCursor.data;
-  await pool.query(
-    "UPDATE invitations SET state='EXPIRED',updated_at=now() WHERE expires_at<=now() AND state=ANY($1::text[]) AND (sender_id=$2 OR recipient_id=$2)",
-    [["SENT", "LATER"], req.auth!.userId],
-  );
-  const result = await pool.query(
-    `SELECT * FROM invitations WHERE (sender_id=$1 OR recipient_id=$1) AND sequence_id>$2
-     ORDER BY sequence_id ASC LIMIT 200`, [req.auth!.userId, cursor],
-  );
-  res.json({ invitations: result.rows, nextCursor: result.rows.at(-1)?.sequence_id ?? cursor });
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    // Matches the statement trigger: sequence allocation and cursor reads are commit ordered.
+    await client.query("SELECT pg_advisory_xact_lock(724831902)");
+    await client.query(
+      "UPDATE invitations SET state='EXPIRED',updated_at=now() WHERE expires_at<=now() AND state=ANY($1::text[]) AND (sender_id=$2 OR recipient_id=$2)",
+      [["SENT", "LATER"], req.auth!.userId],
+    );
+    const result = await client.query(
+      `SELECT * FROM invitations WHERE (sender_id=$1 OR recipient_id=$1) AND sequence_id>$2
+       ORDER BY sequence_id ASC LIMIT 200`, [req.auth!.userId, cursor],
+    );
+    await client.query("COMMIT");
+    res.json({ invitations: result.rows, nextCursor: result.rows.at(-1)?.sequence_id ?? cursor });
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
 });
 
 router.post("/", async (req, res) => {

@@ -31,6 +31,15 @@ class SessionStore @Inject constructor(@ApplicationContext context: Context) {
         _session.value = value
     }
 
+    fun invitationCursor(session: Session): Long =
+        prefs.getLong("invitations_cursor_${session.sessionId}", 0L)
+
+    fun saveInvitationCursor(session: Session, cursor: Long) {
+        if (current()?.sessionId == session.sessionId) {
+            check(prefs.edit().putLong("invitations_cursor_${session.sessionId}", cursor).commit())
+        }
+    }
+
     fun clear() { prefs.edit().clear().apply(); _session.value = null }
 
     private fun read(): Session? {

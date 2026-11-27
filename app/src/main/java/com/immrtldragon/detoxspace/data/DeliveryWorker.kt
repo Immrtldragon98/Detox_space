@@ -1,6 +1,20 @@
 package com.immrtldragon.detoxspace.data
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.core.content.ContextCompat
 import android.content.Context
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.Intent
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
+import com.immrtldragon.detoxspace.MainActivity
+import com.immrtldragon.detoxspace.R
+import com.immrtldragon.detoxspace.domain.InvitationState
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.CancellationException
 import androidx.hilt.work.HiltWorker
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
@@ -21,9 +35,30 @@ class DeliveryWorker @AssistedInject constructor(
     private val repository: DetoxRepository,
 ) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result = runCatching {
+        val before = repository.invitations.first().associate { it.id to it.state }
         repository.retryPending()
         repository.syncAll()
-    }.fold(onSuccess = { Result.success() }, onFailure = { Result.retry() })
+        val changed = repository.invitations.first().any {
+            it.isIncoming && it.state in setOf(InvitationState.SENT, InvitationState.LATER, InvitationState.ACCEPTED) &&
+                before[it.id] != it.state
+        }
+        if (changed && NotificationManagerCompat.from(applicationContext).areNotificationsEnabled() &&
+            (Build.VERSION.SDK_INT < 33 || ContextCompat.checkSelfPermission(applicationContext,
+                Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED)) {
+            val openApp = PendingIntent.getActivity(applicationContext, 0,
+                Intent(applicationContext, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP),
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+            applicationContext.getSystemService(NotificationManager::class.java).notify(1001,
+                NotificationCompat.Builder(applicationContext, "private_moments")
+                    .setSmallIcon(R.drawable.ic_notification)
+                    .setContentTitle("Detox Space")
+                    .setContentText("A moment is waiting for you.")
+                    .setContentIntent(openApp).setAutoCancel(true).build())
+        }
+    }.fold(onSuccess = { Result.success() }, onFailure = {
+        if (it is CancellationException) throw it
+        Result.retry()
+    })
 
     companion object {
         fun schedule(context: Context) {

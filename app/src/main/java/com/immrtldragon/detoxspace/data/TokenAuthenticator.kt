@@ -29,9 +29,14 @@ class TokenAuthenticator @Inject constructor(
             }.getOrNull()
             val body = refreshed?.takeIf { it.isSuccessful }?.body()
             if (body == null) {
-                sessions.clear()
+                // Connectivity failures, 429 and 5xx must not destroy a valid login.
+                if (refreshed?.code() in listOf(401, 403) && sessions.current() == current) {
+                    sessions.clear()
+                }
+                refreshed?.errorBody()?.close()
                 return null
             }
+            if (sessions.current() != current) return null
             sessions.save(Session(body.accessToken, body.refreshToken, body.userId, body.sessionId))
             return response.request.newBuilder()
                 .header("Authorization", "Bearer ${body.accessToken}")

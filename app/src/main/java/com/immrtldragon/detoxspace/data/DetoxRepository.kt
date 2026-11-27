@@ -8,6 +8,8 @@ import com.immrtldragon.detoxspace.data.remote.CreateInvitationRequest
 import com.immrtldragon.detoxspace.data.remote.DetoxApi
 import com.immrtldragon.detoxspace.data.remote.RespondInvitationRequest
 import com.immrtldragon.detoxspace.domain.*
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
@@ -44,6 +46,7 @@ class OfflineFirstDetoxRepository @Inject constructor(
     private val sessionStore: SessionStore,
     @ApplicationContext private val context: Context,
 ) : DetoxRepository {
+    private val syncMutex = Mutex()
     private val localPresence = MutableStateFlow(Presence.AVAILABLE)
     override val presence: Flow<Presence> = localPresence
     private val remoteConnections = MutableStateFlow<List<Connection>>(emptyList())
@@ -79,31 +82,38 @@ class OfflineFirstDetoxRepository @Inject constructor(
         }
     }
 
-    override suspend fun syncAll() {
+    override suspend fun syncAll() = syncMutex.withLock {
         syncConnections()
-        val userId = sessionStore.session.value?.userId ?: return
+        val session = sessionStore.current() ?: return@withLock
+        val userId = session.userId
         val connectionsByUser = remoteConnections.value.associateBy(Connection::id)
-        api.invitations(0).invitations.forEach { remote ->
-            val incoming = remote.recipient_id == userId
-            val otherUserId = if (incoming) remote.sender_id else remote.recipient_id
-            val other = connectionsByUser[otherUserId]
-            val proposedAt = Instant.parse(remote.proposed_at).toEpochMilli()
-            invitationDao.upsert(
-                InvitationEntity(
-                    id = remote.id,
-                    connectionId = otherUserId,
-                    connectionName = other?.name ?: "Trusted person",
-                    signalId = remote.signal_type.lowercase(),
-                    signalTitle = remote.signal_type.lowercase().replaceFirstChar(Char::uppercase) + "?",
-                    note = remote.note,
-                    timeWindow = if (proposedAt <= System.currentTimeMillis() + 90 * 60_000) "Now" else "Planned",
-                    state = remote.state,
-                    createdAtEpochMillis = proposedAt,
-                    expiresAtEpochMillis = Instant.parse(remote.expires_at).toEpochMilli(),
-                    isIncoming = incoming,
+        syncInvitationPages(
+            initialCursor = sessionStore.invitationCursor(session),
+            fetch = { api.invitations(it) },
+            isCurrentSession = { sessionStore.current()?.sessionId == session.sessionId },
+            checkpoint = { sessionStore.saveInvitationCursor(session, it) },
+            store = { remote ->
+                val incoming = remote.recipient_id == userId
+                val otherUserId = if (incoming) remote.sender_id else remote.recipient_id
+                val other = connectionsByUser[otherUserId]
+                val proposedAt = Instant.parse(remote.proposed_at).toEpochMilli()
+                invitationDao.upsert(
+                    InvitationEntity(
+                        id = remote.id,
+                        connectionId = otherUserId,
+                        connectionName = other?.name ?: "Trusted person",
+                        signalId = remote.signal_type.lowercase(),
+                        signalTitle = remote.signal_type.lowercase().replaceFirstChar(Char::uppercase) + "?",
+                        note = remote.note,
+                        timeWindow = if (proposedAt <= System.currentTimeMillis() + 90 * 60_000) "Now" else "Planned",
+                        state = remote.state,
+                        createdAtEpochMillis = proposedAt,
+                        expiresAtEpochMillis = Instant.parse(remote.expires_at).toEpochMilli(),
+                        isIncoming = incoming,
+                    )
                 )
-            )
-        }
+            }
+        )
     }
 
     override suspend fun retryPending() {
