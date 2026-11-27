@@ -12,7 +12,7 @@ test("migration supports pages beyond 200 and advances updated invitations", {
     await client.query("BEGIN");
     await client.query("CREATE SCHEMA cursor_regression; SET LOCAL search_path TO cursor_regression, public");
     for (const name of ["001_initial.sql", "002_production_hardening.sql", "003_invitation_change_cursor.sql"]) {
-      await client.query(await readFile(new URL(`../../../migrations/${name}`, import.meta.url), "utf8"));
+      await client.query(await readFile(new URL(`../../migrations/${name}`, import.meta.url), "utf8"));
     }
     const users = await client.query(`INSERT INTO users(username,email,password_hash)
       VALUES ('first','first@example.com','hash'),('second','second@example.com','hash') RETURNING id`);
